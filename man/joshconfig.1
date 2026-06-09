@@ -1,0 +1,199 @@
+.TH JOSHCONFIG 1 "June 2026" "joshconfig 0.1.0" "User Commands"
+.SH NAME
+joshconfig \- manage PATH and MANPATH environment variables
+.SH SYNOPSIS
+.B joshconfig
+.I command
+[\fIoptions\fR]
+.SH DESCRIPTION
+.B joshconfig
+extracts PATH and MANPATH modifications from shell configuration files and
+creates individual entry files in ~/.paths.d/ and ~/.manpaths.d/. A lightweight
+loader script sources these entries at shell startup, providing deduplication
+and consistent path management.
+.PP
+The tool uses two methods to extract PATH modifications:
+.IP \(bu 2
+Static parsing: Regex-based extraction of PATH= and MANPATH= assignments
+.IP \(bu 2
+Dynamic instrumentation: Spawns shell processes with tracing to capture
+actual runtime values
+.SH COMMANDS
+.SS analyze
+Analyze shell configuration files and generate .paths.d/.manpaths.d entries.
+.PP
+.B joshconfig analyze
+.RB [ \-\-dry\-run ]
+.RB [ \-\-shell
+.IR shell ]
+.PP
+Options:
+.TP
+.BR \-\-dry\-run
+Show what would be generated without writing files
+.TP
+.BR \-\-shell =\fIshell\fR
+Specify which shell to analyze (bash, zsh, or both). Default: both
+.PP
+This command:
+.IP \(bu 2
+Scans shell config files (~/.bash_profile, ~/.bashrc, ~/.zshrc, etc.)
+.IP \(bu 2
+Extracts PATH and MANPATH assignments
+.IP \(bu 2
+Creates numbered entry files in ~/.paths.d/ and ~/.manpaths.d/
+.IP \(bu 2
+Skips entries from /etc/paths.d/ and /etc/manpaths.d/ (handled by path_helper)
+.SS list
+List current entries in .paths.d and .manpaths.d directories.
+.PP
+.B joshconfig list
+.PP
+Displays all managed path entries with their source files and line numbers.
+.SS help
+Show help information.
+.PP
+.B joshconfig help
+.RI [ command ]
+.SH ENTRY FILE FORMAT
+Each file in ~/.paths.d/ or ~/.manpaths.d/ contains one path entry:
+.PP
+.nf
+/path/to/directory # Optional comment
+.fi
+.PP
+Filename format: \fINN-description\fR where \fINN\fR is a numeric prefix for
+ordering (e.g., 10-homebrew-bin, 20-go-bin).
+.PP
+The loader script reads files in alphabetical order, so numeric prefixes
+control the order of path entries.
+.SH LOADER SCRIPT
+The loader script (~/.local/bin/load-paths.zsh) must be sourced at the end
+of your shell configuration:
+.PP
+.nf
+. "$HOME/.local/bin/load-paths.zsh"
+.fi
+.PP
+The loader:
+.IP 1. 4
+Reads all files in ~/.paths.d/ (sorted alphabetically)
+.IP 2. 4
+Strips comments and expands ~ and $HOME
+.IP 3. 4
+Prepends entries to existing PATH
+.IP 4. 4
+Removes duplicates while preserving order
+.SH EXAMPLES
+.SS Analyze all shell configurations
+.PP
+.nf
+$ joshconfig analyze
+Analyzing ~/.bash_profile...
+Analyzing ~/.bashrc...
+Analyzing ~/.zshrc...
+Generated 12 entries in ~/.paths.d/
+Generated 3 entries in ~/.manpaths.d/
+.fi
+.SS Dry run to preview changes
+.PP
+.nf
+$ joshconfig analyze --dry-run
+Would create:
+  10-homebrew-bin: /opt/homebrew/bin
+  20-go-bin: /usr/local/go/bin
+  30-rust-bin: ~/.cargo/bin
+.fi
+.SS List current entries
+.PP
+.nf
+$ joshconfig list
+PATH entries:
+  10-homebrew-bin: /opt/homebrew/bin
+  20-go-bin: /usr/local/go/bin
+  30-rust-bin: ~/.cargo/bin
+
+MANPATH entries:
+  10-homebrew-man: /opt/homebrew/share/man
+.fi
+.SS Manual entry management
+.PP
+.nf
+# Create a new entry
+$ echo "/usr/local/go/bin # Go installation" > ~/.paths.d/50-go-bin
+
+# Edit an entry
+$ vim ~/.paths.d/10-homebrew-bin
+
+# Remove an entry
+$ rm ~/.paths.d/20-old-path
+.fi
+.SH FILES
+.TP
+.I ~/.local/bin/joshconfig
+Main binary
+.TP
+.I ~/.local/bin/load-paths.zsh
+Loader script (zsh only)
+.TP
+.I ~/.paths.d/
+Directory containing PATH entries
+.TP
+.I ~/.manpaths.d/
+Directory containing MANPATH entries
+.TP
+.I ~/.bash_profile, ~/.bashrc, ~/.zshrc
+Shell configuration files (read-only)
+.SH ENVIRONMENT
+.TP
+.B HOME
+Used to locate ~/.paths.d and ~/.manpaths.d
+.TP
+.B PATH
+Modified by the loader script
+.TP
+.B MANPATH
+Modified by the loader script (if ~/.manpaths.d exists)
+.SH EXIT STATUS
+.B joshconfig
+exits with the following status codes:
+.TP
+.B 0
+Success
+.TP
+.B 1
+General error (file not found, parse error, etc.)
+.TP
+.B 2
+Invalid command-line arguments
+.SH LIMITATIONS
+.IP \(bu 2
+Zsh only: Bash support is not yet implemented
+.IP \(bu 2
+No shell interpolation: Entries cannot contain complex shell expressions
+.IP \(bu 2
+Order dependency: Paths are prepended, so they override existing entries
+.IP \(bu 2
+macOS specific: Skips /etc/paths.d/ and /etc/manpaths.d/ entries
+.SH DIAGNOSTICS
+.TP
+.B Error: Shell not found
+The specified shell binary is not installed or not in PATH.
+.TP
+.B Error: Cannot read file
+A shell configuration file cannot be read (permission denied or missing).
+.TP
+.B Warning: No PATH modifications found
+The analyzed shell configuration files do not modify PATH or MANPATH.
+.SH BUGS
+Report bugs to: git@gitlab.com:joshrodd/joshconfig/issues
+.SH AUTHORS
+Josh rodd
+.SH SEE ALSO
+.BR bash (1),
+.BR zsh (1),
+.BR path_helper (8)
+.PP
+Full documentation: <https://gitlab.com/joshrodd/joshconfig>
+.SH LICENSE
+MIT License. See LICENSE.md for details.

@@ -34,10 +34,19 @@ else
     exit 1
 fi
 
+
 # Copy the loader script
 echo "Installing load-paths.zsh..."
 cp scripts/load-paths.zsh "$LOADER_SCRIPT"
 chmod +x "$LOADER_SCRIPT"
+
+# Install manpage
+echo "Installing manpage..."
+MAN_DIR="$HOME/.local/share/man/man1"
+mkdir -p "$MAN_DIR"
+cp man/joshconfig.1 "$MAN_DIR/"
+echo "Installed manpage to $MAN_DIR/joshconfig.1"
+echo "Run 'man joshconfig' to view it."
 
 echo
 echo "Installation complete!"
