@@ -16,7 +16,7 @@
     sudo dnf install rust
     ```
 
-- **Shell**: zsh or bash (bash loader supports GNU bash 3.2.57+)
+- **Shell**: zsh or bash (bash 3.2.57+)
 
 ## Installation Steps
 
@@ -34,9 +34,9 @@ cd joshconfig
 ```
 
 This will:
-- Build the `joshconfig` binary in release mode
-- Install binary to `~/.local/bin/joshconfig`
-- Install loader scripts to `~/.local/bin/load-paths.zsh` and `~/.local/bin/load-paths.bash`
+- Build the `joshconfig` and `joshconfig-env` binaries in release mode
+- Install binaries to `~/.local/bin/joshconfig` and `~/.local/bin/joshconfig-env`
+- Install loader script to `~/.local/bin/joshconfig-load-paths.sh`
 - Create `~/.paths.d/` and `~/.manpaths.d/` directories
 
 ### 3. Analyze your shell configuration
@@ -49,17 +49,14 @@ This scans your shell config files and creates entries in `~/.paths.d/` and `~/.
 
 ### 4. Add the loader to your shell config
 
-Add the correct line to the **end** of your shell config:
+Add the following line to the **end** of your shell config:
 
 ```bash
-# zsh: add to ~/.zshrc
-. "$HOME/.local/bin/load-paths.zsh"
-
-# bash: add to ~/.bashrc
-. "$HOME/.local/bin/load-paths.bash"
+# ~/.zshrc or ~/.bashrc
+. "$HOME/.local/bin/joshconfig-load-paths.sh"
 ```
 
-Use the zsh line for zsh, the bash line for bash, or both if you use both shells.
+This single line works for both zsh and bash.
 
 **Important**: The loader must be at the end of your config file to ensure it processes paths after all other modifications.
 
@@ -82,6 +79,9 @@ echo $PATH | tr ':' '\n' | sort | uniq -c | sort -rn
 
 # List managed entries
 joshconfig list
+
+# Check loader position
+joshconfig doctor
 ```
 
 ## Uninstallation
@@ -91,16 +91,15 @@ To remove joshconfig:
 ```bash
 # Remove installed files
 rm -f ~/.local/bin/joshconfig
-rm -f ~/.local/bin/load-paths.zsh
-rm -f ~/.local/bin/load-paths.bash
+rm -f ~/.local/bin/joshconfig-env
+rm -f ~/.local/bin/joshconfig-load-paths.sh
 
 # Optionally remove managed entries
 rm -rf ~/.paths.d
 rm -rf ~/.manpaths.d
 
 # Remove the loader line from ~/.zshrc and/or ~/.bashrc
-# Delete: . "$HOME/.local/bin/load-paths.zsh"
-# Delete: . "$HOME/.local/bin/load-paths.bash"
+# Delete: . "$HOME/.local/bin/joshconfig-load-paths.sh"
 
 # Optionally remove source directory
 rm -rf /path/to/joshconfig
@@ -127,6 +126,7 @@ Check that:
    ls -la ~/.paths.d/
    ```
 3. Run `joshconfig analyze` to regenerate entries
+4. Run `joshconfig doctor` to check for issues
 
 ### Duplicate paths
 
@@ -137,12 +137,12 @@ If you still see duplicates:
 
 ### Permission denied
 
-Ensure the binary is executable:
+Ensure the binaries are executable:
 
 ```bash
 chmod +x ~/.local/bin/joshconfig
-chmod +x ~/.local/bin/load-paths.zsh
-chmod +x ~/.local/bin/load-paths.bash
+chmod +x ~/.local/bin/joshconfig-env
+chmod +x ~/.local/bin/joshconfig-load-paths.sh
 ```
 
 ## Updating
@@ -153,10 +153,10 @@ To update to the latest version:
 cd /path/to/joshconfig
 git pull
 source "$HOME/.cargo/env"
-cargo build --release
+cargo build --release --bins
 cp target/release/joshconfig ~/.local/bin/
-cp scripts/load-paths.zsh ~/.local/bin/
-cp scripts/load-paths.bash ~/.local/bin/
+cp target/release/joshconfig-env ~/.local/bin/
+cp scripts/joshconfig-load-paths.sh ~/.local/bin/
 joshconfig analyze
 ```
 
@@ -165,15 +165,15 @@ joshconfig analyze
 If you prefer to install manually:
 
 ```bash
-# Build the binary
+# Build the binaries
 source "$HOME/.cargo/env"
-cargo build --release
+cargo build --release --bins
 
 # Install files
 mkdir -p ~/.local/bin
 cp target/release/joshconfig ~/.local/bin/
-cp scripts/load-paths.zsh ~/.local/bin/
-cp scripts/load-paths.bash ~/.local/bin/
+cp target/release/joshconfig-env ~/.local/bin/
+cp scripts/joshconfig-load-paths.sh ~/.local/bin/
 
 # Create directories
 mkdir -p ~/.paths.d
@@ -183,8 +183,7 @@ mkdir -p ~/.manpaths.d
 ~/.local/bin/joshconfig analyze
 
 # Add loader to shell config
-echo '. "$HOME/.local/bin/load-paths.zsh"' >> ~/.zshrc
-echo '. "$HOME/.local/bin/load-paths.bash"' >> ~/.bashrc
+echo '. "$HOME/.local/bin/joshconfig-load-paths.sh"' >> ~/.zshrc
 ```
 
 ## System-wide Installation
@@ -193,14 +192,14 @@ For system-wide installation (requires root):
 
 ```bash
 # Build and install to /usr/local
-cargo build --release
+cargo build --release --bins
 sudo cp target/release/joshconfig /usr/local/bin/
-sudo cp scripts/load-paths.zsh /usr/local/bin/
-sudo cp scripts/load-paths.bash /usr/local/bin/
+sudo cp target/release/joshconfig-env /usr/local/bin/
+sudo cp scripts/joshconfig-load-paths.sh /usr/local/bin/
 
 # Users still need to run:
 # joshconfig analyze
-# And add the matching loader to their ~/.zshrc and/or ~/.bashrc
+# And add the loader to their ~/.zshrc and/or ~/.bashrc
 ```
 
 ## Building from Source
@@ -209,10 +208,10 @@ To build from source without installing:
 
 ```bash
 # Debug build
-cargo build
+cargo build --bins
 
 # Release build
-cargo build --release
+cargo build --release --bins
 
 # Run tests
 cargo test --all

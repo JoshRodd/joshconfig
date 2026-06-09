@@ -17,8 +17,8 @@ joshconfig \- manage PATH and MANPATH environment variables
 .B joshconfig
 extracts PATH and MANPATH modifications from shell configuration files and
 creates individual entry files in ~/.paths.d/ and ~/.manpaths.d/. A lightweight
-loader script sources these entries at shell startup, providing deduplication
-and consistent path management.
+Rust binary (joshconfig-env) reads these entries at shell startup via a sourced
+shim script, providing deduplication and consistent path management.
 .PP
 The tool uses two methods to extract PATH modifications:
 .IP \(bu 2
@@ -52,6 +52,31 @@ Extracts PATH and MANPATH assignments
 Creates numbered entry files in ~/.paths.d/ and ~/.manpaths.d/
 .IP \(bu 2
 Skips entries from /etc/paths.d/ and /etc/manpaths.d/ (handled by path_helper)
+.SS shellenv
+Emit shell commands to set PATH and MANPATH from .paths.d/.manpaths.d.
+.PP
+.B joshconfig shellenv
+.PP
+Outputs VARIABLE=value and export VARIABLE lines for PATH and MANPATH
+based on the contents of ~/.paths.d/ and ~/.manpaths.d/. Used internally
+by the joshconfig-load-paths.sh shim but can also be called directly.
+.SS doctor
+Check and fix loader line position in shell config files.
+.PP
+.B joshconfig doctor
+.RB [ \-\-fix ]
+.RB [ \-\-shell
+.IR shell ]
+.PP
+Options:
+.TP
+.BR \-\-fix
+Move the loader line to the end of the file if it is positioned incorrectly.
+.TP
+.BR \-\-shell =\fIshell\fR
+Target a specific shell config file (bash or zsh). Default: both
+.PP
+Without --fix, only reports problems (dry-run).
 .SS list
 List current entries in .paths.d and .manpaths.d directories.
 .PP
@@ -97,31 +122,36 @@ Each file in ~/.paths.d/ or ~/.manpaths.d/ contains one path entry:
 Filename format: \fINN-description\fR where \fINN\fR is a numeric prefix for
 ordering (e.g., 10-homebrew-bin, 20-go-bin).
 .PP
-The loader scripts read files in alphabetical order, so numeric prefixes
+The loader reads files in alphabetical order, so numeric prefixes
 control the order of path entries.
-.SH LOADER SCRIPTS
-joshconfig installs separate loader scripts for zsh and bash. Source the
-matching loader at the end of your shell configuration:
+.SH LOADER SCRIPT
+joshconfig installs a single loader shim (joshconfig-load-paths.sh) that works in both
+zsh and bash. Source it at the end of your shell configuration:
 .PP
 .nf
-# zsh (~/.zshrc)
-. "$HOME/.local/bin/load-paths.zsh"
-
-# bash (~/.bashrc)
-. "$HOME/.local/bin/load-paths.bash"
+# ~/.zshrc or ~/.bashrc
+. "$HOME/.local/bin/joshconfig-load-paths.sh"
 .fi
 .PP
-The loaders:
+The shim:
 .IP 1. 4
-Read all files in ~/.paths.d/ (sorted alphabetically)
+Locates the joshconfig-env binary (or falls back to joshconfig shellenv)
 .IP 2. 4
-Strip comments and expand ~ and $HOME
+Calls it and evals the emitted VARIABLE=value / export VARIABLE commands
 .IP 3. 4
-Prepend entries to existing PATH
-.IP 4. 4
-Remove duplicates while preserving order
+Warns if the loader line is not at the end of the sourcing file
 .PP
-The bash loader is compatible with GNU bash version 3.2.57 and later.
+The joshconfig-env binary:
+.IP 1. 4
+Reads all files in ~/.paths.d/ (sorted alphabetically)
+.IP 2. 4
+Strips comments and expands ~ and $HOME
+.IP 3. 4
+Prepends entries to existing PATH
+.IP 4. 4
+Removes duplicates while preserving order
+.PP
+The shim is compatible with GNU bash version 3.2.57 and later, as well as zsh.
 .SH EXAMPLES
 .SS Analyze all shell configurations
 .PP
@@ -154,6 +184,15 @@ PATH entries:
 MANPATH entries:
   10-homebrew-man: /opt/homebrew/share/man
 .fi
+.SS Check loader position (doctor)
+.PP
+.nf
+$ joshconfig doctor
+/home/user/.zshrc: loader line is correctly at the end  ✓
+/home/user/.bashrc: loader line is not at the end of the file
+  Line 42 (0-indexed) contains the loader, but content follows.
+  Run with --fix to move it to the end.
+.fi
 .SS Manual entry management
 .PP
 .nf
@@ -171,11 +210,11 @@ $ rm ~/.paths.d/20-old-path
 .I ~/.local/bin/joshconfig
 Main binary
 .TP
-.I ~/.local/bin/load-paths.zsh
-Loader script for zsh
+.I ~/.local/bin/joshconfig-env
+Standalone PATH/MANPATH emitter binary (called by loader shim)
 .TP
-.I ~/.local/bin/load-paths.bash
-Loader script for bash 3.2.57+
+.I ~/.local/bin/joshconfig-load-paths.sh
+Unified loader shim for zsh and bash
 .TP
 .I ~/.paths.d/
 Directory containing PATH entries
@@ -191,10 +230,13 @@ Shell configuration files (read-only)
 Used to locate ~/.paths.d and ~/.manpaths.d
 .TP
 .B PATH
-Modified by the loader script
+Modified by the loader shim
 .TP
 .B MANPATH
-Modified by the loader script (if ~/.manpaths.d exists)
+Modified by the loader shim (if ~/.manpaths.d exists)
+.TP
+.B JOSHCONFIG_ENV_BIN
+Override path to the joshconfig-env binary (for testing or custom installs)
 .SH EXIT STATUS
 .B joshconfig
 exits with the following status codes:

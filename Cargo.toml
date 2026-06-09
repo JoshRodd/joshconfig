@@ -21,3 +21,8 @@ predicates = "3.1"
 [[bin]]
 name = "joshconfig"
 path = "src/main.rs"
+
+
+[[bin]]
+name = "joshconfig-env"
+path = "src/bin/env.rs"

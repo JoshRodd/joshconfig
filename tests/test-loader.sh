@@ -1,12 +1,11 @@
 #!/bin/sh
-# test-loader.sh - Test zsh and bash loader scripts
+# test-joshconfig-load-paths.sh - Test the joshconfig-load-paths.sh loader shim
 # Compatible with bash 3.2.57+ and POSIX sh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ZSH_LOADER="$SCRIPT_DIR/../scripts/load-paths.zsh"
-BASH_LOADER="$SCRIPT_DIR/../scripts/load-paths.bash"
+LOADER_SHIM="$SCRIPT_DIR/../scripts/joshconfig-load-paths.sh"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,7 +41,7 @@ run_shell() {
     _manpath_value="$5"
     _expr="$6"
 
-    HOME="$_home" PATH="$_path_value" MANPATH="$_manpath_value" "$_shell" -c ". \"$_loader\" && $_expr"
+    HOME="$_home" PATH="$_path_value" MANPATH="$_manpath_value" JOSHCONFIG_ENV_BIN="$JOSHCONFIG_ENV_BIN" "$_shell" -c ". \"$_loader\" && $_expr"
 }
 
 run_suite() {
@@ -189,16 +188,32 @@ EOF
     rm -rf "$TEMP_HOME"
 }
 
+# Build joshconfig-env binary first
+echo "Building joshconfig-env binary..."
+if ! command -v cargo >/dev/null 2>&1; then
+    echo "Error: cargo not found. Skipping tests."
+    exit 1
+fi
+
+cargo build --bin joshconfig-env 2>/dev/null
+JOSHCONFIG_ENV_BIN="$(cd "$SCRIPT_DIR/.." && pwd)/target/debug/joshconfig-env"
+export JOSHCONFIG_ENV_BIN
+
+if [ ! -x "$JOSHCONFIG_ENV_BIN" ]; then
+    echo "Error: joshconfig-env binary not found at $JOSHCONFIG_ENV_BIN"
+    exit 1
+fi
+
 if command -v zsh >/dev/null 2>&1; then
-    run_suite "zsh" "zsh" "$ZSH_LOADER"
+    run_suite "zsh" "zsh" "$LOADER_SHIM"
 else
     echo "Skipping zsh tests: zsh not found"
 fi
 
-run_suite "bash" "/bin/bash" "$BASH_LOADER"
+run_suite "bash" "/bin/bash" "$LOADER_SHIM"
 
 if command -v bash >/dev/null 2>&1 && [ "$(command -v bash)" != "/bin/bash" ]; then
-    run_suite "bash-current" "bash" "$BASH_LOADER"
+    run_suite "bash-current" "bash" "$LOADER_SHIM"
 fi
 
 echo

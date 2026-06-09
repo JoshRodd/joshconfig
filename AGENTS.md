@@ -63,7 +63,8 @@ When modifying Rust code:
 Key files to remember:
 - Main binary source: `src/main.rs`
 - Installation script: `scripts/install.sh`
-- Loader scripts: `scripts/load-paths.zsh`, `scripts/load-paths.bash`
+- Loader shim: `scripts/joshconfig-load-paths.sh`
+- Loader core: `src/shellenv.rs`, `src/bin/env.rs` (joshconfig-env binary)
 - Manpage: `man/joshconfig.1`
 - Tests: `tests/` directory
 - Documentation: `README.md`, `INSTALL.md`, `TODO.md`

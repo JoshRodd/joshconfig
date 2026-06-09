@@ -2,6 +2,7 @@ mod analyzer;
 mod generator;
 mod parser;
 mod types;
+mod shellenv;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -35,8 +36,22 @@ enum Commands {
 
     /// Clean up old entries that are no longer in config files
     Clean,
-}
 
+    /// Emit shell commands to set PATH and MANPATH from .paths.d/.manpaths.d
+    Shellenv,
+
+    /// Check and fix loader line position in shell config files
+    Doctor {
+        /// Fix any issues found (without this flag, only report problems)
+        #[arg(long)]
+        fix: bool,
+
+        /// Target a specific shell config file
+        #[arg(long)]
+        shell: Option<ShellArg>,
+    },
+
+}
 #[derive(clap::ValueEnum, Clone)]
 enum ShellArg {
     Bash,
@@ -51,6 +66,11 @@ fn main() -> Result<()> {
         Commands::Analyze { shell, dry_run } => cmd_analyze(shell, dry_run),
         Commands::List => cmd_list(),
         Commands::Clean => cmd_clean(),
+        Commands::Shellenv => {
+            let code = shellenv::emit_shell_env();
+            std::process::exit(code);
+        }
+        Commands::Doctor { fix, shell } => cmd_doctor(fix, shell),
     }
 }
 
@@ -209,6 +229,91 @@ fn cmd_clean() -> Result<()> {
     generator::cleanup_old_entries(&home, &all_entries)?;
 
     println!("Cleanup complete");
+
+    Ok(())
+}
+
+fn cmd_doctor(fix: bool, shell: Option<ShellArg>) -> Result<()> {
+    let home = dirs::home_dir().context("Could not determine home directory")?;
+
+    // Determine which config files to check
+    let shells: &[ShellArg] = match shell {
+        Some(s) => &[s],
+        None => &[ShellArg::Bash, ShellArg::Zsh],
+    };
+
+    for shell_arg in shells {
+        let configs: Vec<std::path::PathBuf> = match shell_arg {
+            ShellArg::Bash => vec![
+                home.join(".bash_profile"),
+                home.join(".bashrc"),
+            ],
+            ShellArg::Zsh => vec![home.join(".zshrc")],
+            ShellArg::Both => vec![
+                home.join(".bash_profile"),
+                home.join(".bashrc"),
+                home.join(".zshrc"),
+            ],
+        };
+
+        for config in &configs {
+            if !config.exists() {
+                continue;
+            }
+
+            let content = match std::fs::read_to_string(config) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Warning: Cannot read {}: {}", config.display(), e);
+                    continue;
+                }
+            };
+
+            let lines: Vec<&str> = content.lines().collect();
+
+            // Find the last line containing joshconfig-load-paths.sh
+            let loader_idx = lines.iter().rposition(|l| l.contains("joshconfig-load-paths.sh"));
+
+            match loader_idx {
+                None => {
+                    println!("{}: no joshconfig-load-paths.sh loader line found", config.display());
+                    println!("  Add the following line to the END of this file:");
+                    println!("  . \"$HOME/.local/bin/joshconfig-load-paths.sh\"");
+                }
+                Some(idx) => {
+                    // Check if any non-empty, non-comment lines follow it
+                    let has_content_after = lines[idx + 1..]
+                        .iter()
+                        .any(|l| {
+                            let t = l.trim();
+                            !t.is_empty() && !t.starts_with('#')
+                        });
+
+                    if has_content_after {
+                        println!("{}: loader line is not at the end of the file", config.display());
+                        println!("  Line {} (0-indexed) contains the loader, but content follows.", idx);
+
+                        if fix {
+                            // Move the loader line to the end
+                            let mut new_lines: Vec<&str> = lines.clone();
+                            let loader_line = new_lines.remove(idx);
+                            new_lines.push(loader_line);
+                            let new_content = new_lines.join("\n") + "\n";
+
+                            match std::fs::write(config, &new_content) {
+                                Ok(_) => println!("  Fixed: moved loader line to end of {}", config.display()),
+                                Err(e) => eprintln!("  Error writing {}: {}", config.display(), e),
+                            }
+                        } else {
+                            println!("  Run with --fix to move it to the end.");
+                        }
+                    } else {
+                        println!("{}: loader line is correctly at the end ✓", config.display());
+                    }
+                }
+            }
+        }
+    }
 
     Ok(())
 }

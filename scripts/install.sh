@@ -7,10 +7,8 @@ set -e
 INSTALL_DIR="$HOME/.local/bin"
 PATHS_DIR="$HOME/.paths.d"
 MANPATHS_DIR="$HOME/.manpaths.d"
-LOADER_SCRIPT_ZSH="$INSTALL_DIR/load-paths.zsh"
-LOADER_SCRIPT_BASH="$INSTALL_DIR/load-paths.bash"
-LOADER_LINE_ZSH='. "$HOME/.local/bin/load-paths.zsh"'
-LOADER_LINE_BASH='. "$HOME/.local/bin/load-paths.bash"'
+LOADER_SCRIPT="$INSTALL_DIR/joshconfig-load-paths.sh"
+LOADER_LINE='. "$HOME/.local/bin/joshconfig-load-paths.sh"'
 
 # Version
 VERSION="0.1.0"
@@ -33,9 +31,9 @@ OPTIONS:
     -v, --version    Print version information
 
 This script will:
-    - Build the joshconfig binary from source
-    - Install joshconfig to ~/.local/bin/
-    - Install load-paths.zsh and load-paths.bash to ~/.local/bin/
+    - Build the joshconfig and joshconfig-env binaries from source
+    - Install joshconfig and joshconfig-env to ~/.local/bin/
+    - Install joshconfig-load-paths.sh to ~/.local/bin/
     - Create ~/.paths.d/ and ~/.manpaths.d/ directories
     - Install the manpage to ~/.local/share/man/man1/
     - Add loader line to shell config files (if not present)
@@ -59,26 +57,24 @@ echo "Creating $PATHS_DIR and $MANPATHS_DIR..."
 mkdir -p "$PATHS_DIR"
 mkdir -p "$MANPATHS_DIR"
 
-# Build the Rust binary
-echo "Building joshconfig binary..."
+# Build the Rust binaries
+echo "Building joshconfig binaries..."
 if command -v cargo >/dev/null 2>&1; then
-    cargo build --release
+    cargo build --release --bins
     cp target/release/joshconfig "$INSTALL_DIR/"
-    chmod +x "$INSTALL_DIR/joshconfig"
-    echo "Installed joshconfig to $INSTALL_DIR/joshconfig"
+    cp target/release/joshconfig-env "$INSTALL_DIR/"
+    chmod +x "$INSTALL_DIR/joshconfig" "$INSTALL_DIR/joshconfig-env"
+    echo "Installed joshconfig and joshconfig-env to $INSTALL_DIR"
 else
     echo "Error: cargo not found. Please install Rust from https://rustup.rs/"
     exit 1
 fi
 
 
-# Copy the loader scripts
-echo "Installing load-paths.zsh..."
-cp scripts/load-paths.zsh "$LOADER_SCRIPT_ZSH"
-chmod +x "$LOADER_SCRIPT_ZSH"
-echo "Installing load-paths.bash..."
-cp scripts/load-paths.bash "$LOADER_SCRIPT_BASH"
-chmod +x "$LOADER_SCRIPT_BASH"
+# Copy the loader script
+echo "Installing joshconfig-load-paths.sh..."
+cp scripts/joshconfig-load-paths.sh "$LOADER_SCRIPT"
+chmod +x "$LOADER_SCRIPT"
 
 # Install manpage
 echo "Installing manpage..."
@@ -94,11 +90,10 @@ echo
 echo "Next steps:"
 echo "1. Run 'joshconfig analyze' to analyze your shell configs and generate path files"
 echo
-echo "2. Add the appropriate loader line to the END of your shell config:"
-echo "   For zsh (~/.zshrc):  $LOADER_LINE_ZSH"
-echo "   For bash (~/.bashrc): $LOADER_LINE_BASH"
+echo "2. Add the loader line to the END of your shell config:"
+echo "   . \"\$HOME/.local/bin/joshconfig-load-paths.sh\""
 echo
-echo "   You can add both if you use multiple shells."
+echo "   This works for both zsh and bash."
 echo
 echo
 echo "The loader must be at the END of your config files to ensure"
@@ -150,8 +145,8 @@ check_config_file() {
 
 # Check existing config files
 echo "Checking existing shell config files..."
-check_config_file "$HOME/.bashrc" "$LOADER_LINE_BASH"
-check_config_file "$HOME/.zshrc" "$LOADER_LINE_ZSH"
+check_config_file "$HOME/.bashrc" "$LOADER_LINE"
+check_config_file "$HOME/.zshrc" "$LOADER_LINE"
 
 echo
 echo "Installation complete!"
