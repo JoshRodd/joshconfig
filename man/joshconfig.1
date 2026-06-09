@@ -97,25 +97,31 @@ Each file in ~/.paths.d/ or ~/.manpaths.d/ contains one path entry:
 Filename format: \fINN-description\fR where \fINN\fR is a numeric prefix for
 ordering (e.g., 10-homebrew-bin, 20-go-bin).
 .PP
-The loader script reads files in alphabetical order, so numeric prefixes
+The loader scripts read files in alphabetical order, so numeric prefixes
 control the order of path entries.
-.SH LOADER SCRIPT
-The loader script (~/.local/bin/load-paths.zsh) must be sourced at the end
-of your shell configuration:
+.SH LOADER SCRIPTS
+joshconfig installs separate loader scripts for zsh and bash. Source the
+matching loader at the end of your shell configuration:
 .PP
 .nf
+# zsh (~/.zshrc)
 . "$HOME/.local/bin/load-paths.zsh"
+
+# bash (~/.bashrc)
+. "$HOME/.local/bin/load-paths.bash"
 .fi
 .PP
-The loader:
+The loaders:
 .IP 1. 4
-Reads all files in ~/.paths.d/ (sorted alphabetically)
+Read all files in ~/.paths.d/ (sorted alphabetically)
 .IP 2. 4
-Strips comments and expands ~ and $HOME
+Strip comments and expand ~ and $HOME
 .IP 3. 4
-Prepends entries to existing PATH
+Prepend entries to existing PATH
 .IP 4. 4
-Removes duplicates while preserving order
+Remove duplicates while preserving order
+.PP
+The bash loader is compatible with GNU bash version 3.2.57 and later.
 .SH EXAMPLES
 .SS Analyze all shell configurations
 .PP
@@ -166,7 +172,10 @@ $ rm ~/.paths.d/20-old-path
 Main binary
 .TP
 .I ~/.local/bin/load-paths.zsh
-Loader script (zsh only)
+Loader script for zsh
+.TP
+.I ~/.local/bin/load-paths.bash
+Loader script for bash 3.2.57+
 .TP
 .I ~/.paths.d/
 Directory containing PATH entries
@@ -199,8 +208,6 @@ General error (file not found, parse error, etc.)
 .B 2
 Invalid command-line arguments
 .SH LIMITATIONS
-.IP \(bu 2
-Zsh only: Bash support is not yet implemented
 .IP \(bu 2
 No shell interpolation: Entries cannot contain complex shell expressions
 .IP \(bu 2

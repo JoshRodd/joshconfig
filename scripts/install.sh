@@ -7,8 +7,10 @@ set -e
 INSTALL_DIR="$HOME/.local/bin"
 PATHS_DIR="$HOME/.paths.d"
 MANPATHS_DIR="$HOME/.manpaths.d"
-LOADER_SCRIPT="$INSTALL_DIR/load-paths.zsh"
-LOADER_LINE='. "$HOME/.local/bin/load-paths.zsh"'
+LOADER_SCRIPT_ZSH="$INSTALL_DIR/load-paths.zsh"
+LOADER_SCRIPT_BASH="$INSTALL_DIR/load-paths.bash"
+LOADER_LINE_ZSH='. "$HOME/.local/bin/load-paths.zsh"'
+LOADER_LINE_BASH='. "$HOME/.local/bin/load-paths.bash"'
 
 # Version
 VERSION="0.1.0"
@@ -33,7 +35,7 @@ OPTIONS:
 This script will:
     - Build the joshconfig binary from source
     - Install joshconfig to ~/.local/bin/
-    - Install load-paths.zsh to ~/.local/bin/
+    - Install load-paths.zsh and load-paths.bash to ~/.local/bin/
     - Create ~/.paths.d/ and ~/.manpaths.d/ directories
     - Install the manpage to ~/.local/share/man/man1/
     - Add loader line to shell config files (if not present)
@@ -70,10 +72,13 @@ else
 fi
 
 
-# Copy the loader script
+# Copy the loader scripts
 echo "Installing load-paths.zsh..."
-cp scripts/load-paths.zsh "$LOADER_SCRIPT"
-chmod +x "$LOADER_SCRIPT"
+cp scripts/load-paths.zsh "$LOADER_SCRIPT_ZSH"
+chmod +x "$LOADER_SCRIPT_ZSH"
+echo "Installing load-paths.bash..."
+cp scripts/load-paths.bash "$LOADER_SCRIPT_BASH"
+chmod +x "$LOADER_SCRIPT_BASH"
 
 # Install manpage
 echo "Installing manpage..."
@@ -89,10 +94,12 @@ echo
 echo "Next steps:"
 echo "1. Run 'joshconfig analyze' to analyze your shell configs and generate path files"
 echo
-echo "2. Add the following line to the END of your ~/.zshrc:"
-echo "   $LOADER_LINE"
+echo "2. Add the appropriate loader line to the END of your shell config:"
+echo "   For zsh (~/.zshrc):  $LOADER_LINE_ZSH"
+echo "   For bash (~/.bashrc): $LOADER_LINE_BASH"
 echo
-echo "   Note: Bash support is not yet implemented. See TODO.md for details."
+echo "   You can add both if you use multiple shells."
+echo
 echo
 echo "The loader must be at the END of your config files to ensure"
 echo "it processes paths after all other modifications."
@@ -101,20 +108,22 @@ echo
 # Function to check if loader line is at the end of a file
 check_config_file() {
     _file="$1"
+    _loader_line_text="$2"
+
     if [ ! -f "$_file" ]; then
         return 0
     fi
 
     # Check if loader line exists
-    if ! grep -qF "$LOADER_LINE" "$_file"; then
-        echo "Warning: $LOADER_LINE not found in $_file"
+    if ! grep -qF "$_loader_line_text" "$_file"; then
+        echo "Warning: $_loader_line_text not found in $_file"
         echo "Please add it manually to the end of the file."
         return 0
     fi
 
     # Check if there's anything after the loader line
     # Get line number of loader line
-    _loader_line=$(grep -nF "$LOADER_LINE" "$_file" | tail -1 | cut -d: -f1)
+    _loader_line=$(grep -nF "$_loader_line_text" "$_file" | tail -1 | cut -d: -f1)
 
     if [ -z "$_loader_line" ]; then
         return 0
@@ -141,8 +150,8 @@ check_config_file() {
 
 # Check existing config files
 echo "Checking existing shell config files..."
-# check_config_file "$HOME/.bashrc"  # TODO: Enable when bash loader is implemented
-check_config_file "$HOME/.zshrc"
+check_config_file "$HOME/.bashrc" "$LOADER_LINE_BASH"
+check_config_file "$HOME/.zshrc" "$LOADER_LINE_ZSH"
 
 echo
 echo "Installation complete!"

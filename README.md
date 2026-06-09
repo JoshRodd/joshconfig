@@ -10,7 +10,7 @@ joshconfig extracts PATH and MANPATH modifications from shell configuration file
 
 - **Automatic extraction**: Analyzes shell config files using both static parsing and dynamic instrumentation
 - **Deduplication**: Removes duplicate path entries while preserving order
-- **Shell compatibility**: Currently supports zsh (bash support planned)
+- **Shell compatibility**: Supports both zsh and bash (bash 3.2.57+)
 - **Transparent format**: Plain text files that are easy to inspect and edit
 - **macOS aware**: Skips paths from `/etc/paths.d/` and `/etc/manpaths.d/` (handled by `path_helper`)
 
@@ -25,8 +25,11 @@ cd joshconfig
 # Analyze your shell configs
 joshconfig analyze
 
-# Add to your ~/.zshrc
+# Add to your ~/.zshrc (for zsh)
 echo '. "$HOME/.local/bin/load-paths.zsh"' >> ~/.zshrc
+
+# Or add to your ~/.bashrc (for bash)
+echo '. "$HOME/.local/bin/load-paths.bash"' >> ~/.bashrc
 ```
 
 See [INSTALL.md](INSTALL.md) for detailed installation instructions.
@@ -77,11 +80,13 @@ joshconfig uses two methods to extract PATH modifications:
 
 ### Loader Phase
 
-The `load-paths.zsh` script:
-1. Reads all files in `~/.paths.d/` (sorted alphabetically)
-2. Strips comments and expands `~` and `$HOME`
-3. Prepends entries to existing PATH
-4. Removes duplicates while preserving order
+The loader scripts (`load-paths.zsh` and `load-paths.bash`):
+1. Read all files in `~/.paths.d/` (sorted alphabetically)
+2. Strip comments and expand `~` and `$HOME`
+3. Prepend entries to existing PATH
+4. Remove duplicates while preserving order
+
+The zsh and bash loaders are separate ports so each shell can use native, reliable path splitting. The bash loader is compatible with bash 3.2.57+.
 
 ## Entry File Format
 
@@ -95,7 +100,6 @@ Filename format: `NN-description` where `NN` is a numeric prefix for ordering.
 
 ## Limitations
 
-- **Zsh only**: Bash support is not yet implemented (see [TODO.md](TODO.md))
 - **No shell interpolation**: Entries cannot contain complex shell expressions
 - **Order dependency**: Paths are prepended, so they override existing entries
 

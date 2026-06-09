@@ -16,7 +16,7 @@
     sudo dnf install rust
     ```
 
-- **Shell**: zsh (bash support planned, see [TODO.md](TODO.md))
+- **Shell**: zsh or bash (bash loader supports GNU bash 3.2.57+)
 
 ## Installation Steps
 
@@ -36,7 +36,7 @@ cd joshconfig
 This will:
 - Build the `joshconfig` binary in release mode
 - Install binary to `~/.local/bin/joshconfig`
-- Install loader script to `~/.local/bin/load-paths.zsh`
+- Install loader scripts to `~/.local/bin/load-paths.zsh` and `~/.local/bin/load-paths.bash`
 - Create `~/.paths.d/` and `~/.manpaths.d/` directories
 
 ### 3. Analyze your shell configuration
@@ -49,11 +49,17 @@ This scans your shell config files and creates entries in `~/.paths.d/` and `~/.
 
 ### 4. Add the loader to your shell config
 
-Add this line to the **end** of your `~/.zshrc`:
+Add the correct line to the **end** of your shell config:
 
 ```bash
+# zsh: add to ~/.zshrc
 . "$HOME/.local/bin/load-paths.zsh"
+
+# bash: add to ~/.bashrc
+. "$HOME/.local/bin/load-paths.bash"
 ```
+
+Use the zsh line for zsh, the bash line for bash, or both if you use both shells.
 
 **Important**: The loader must be at the end of your config file to ensure it processes paths after all other modifications.
 
@@ -62,7 +68,8 @@ Add this line to the **end** of your `~/.zshrc`:
 Open a new terminal or reload your config:
 
 ```bash
-source ~/.zshrc
+source ~/.zshrc   # zsh
+source ~/.bashrc  # bash
 ```
 
 ## Verification
@@ -85,13 +92,15 @@ To remove joshconfig:
 # Remove installed files
 rm -f ~/.local/bin/joshconfig
 rm -f ~/.local/bin/load-paths.zsh
+rm -f ~/.local/bin/load-paths.bash
 
 # Optionally remove managed entries
 rm -rf ~/.paths.d
 rm -rf ~/.manpaths.d
 
-# Remove the loader line from ~/.zshrc
-# Delete the line: . "$HOME/.local/bin/load-paths.zsh"
+# Remove the loader line from ~/.zshrc and/or ~/.bashrc
+# Delete: . "$HOME/.local/bin/load-paths.zsh"
+# Delete: . "$HOME/.local/bin/load-paths.bash"
 
 # Optionally remove source directory
 rm -rf /path/to/joshconfig
@@ -107,12 +116,12 @@ Ensure `~/.local/bin` is in your PATH:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Add this to your `~/.zshrc` before the loader line.
+Add this to your shell config before the loader line.
 
 ### Paths not being loaded
 
 Check that:
-1. The loader line is at the end of your `~/.zshrc`
+1. The loader line is at the end of your `~/.zshrc` or `~/.bashrc`
 2. Files exist in `~/.paths.d/`:
    ```bash
    ls -la ~/.paths.d/
@@ -133,6 +142,7 @@ Ensure the binary is executable:
 ```bash
 chmod +x ~/.local/bin/joshconfig
 chmod +x ~/.local/bin/load-paths.zsh
+chmod +x ~/.local/bin/load-paths.bash
 ```
 
 ## Updating
@@ -146,6 +156,7 @@ source "$HOME/.cargo/env"
 cargo build --release
 cp target/release/joshconfig ~/.local/bin/
 cp scripts/load-paths.zsh ~/.local/bin/
+cp scripts/load-paths.bash ~/.local/bin/
 joshconfig analyze
 ```
 
@@ -162,6 +173,7 @@ cargo build --release
 mkdir -p ~/.local/bin
 cp target/release/joshconfig ~/.local/bin/
 cp scripts/load-paths.zsh ~/.local/bin/
+cp scripts/load-paths.bash ~/.local/bin/
 
 # Create directories
 mkdir -p ~/.paths.d
@@ -170,8 +182,9 @@ mkdir -p ~/.manpaths.d
 # Analyze configs
 ~/.local/bin/joshconfig analyze
 
-# Add loader to ~/.zshrc
+# Add loader to shell config
 echo '. "$HOME/.local/bin/load-paths.zsh"' >> ~/.zshrc
+echo '. "$HOME/.local/bin/load-paths.bash"' >> ~/.bashrc
 ```
 
 ## System-wide Installation
@@ -183,10 +196,11 @@ For system-wide installation (requires root):
 cargo build --release
 sudo cp target/release/joshconfig /usr/local/bin/
 sudo cp scripts/load-paths.zsh /usr/local/bin/
+sudo cp scripts/load-paths.bash /usr/local/bin/
 
 # Users still need to run:
 # joshconfig analyze
-# And add loader to their ~/.zshrc
+# And add the matching loader to their ~/.zshrc and/or ~/.bashrc
 ```
 
 ## Building from Source
@@ -216,4 +230,4 @@ cargo test --all
     ```bash
     export MANPATH="$HOME/.local/share/man:$MANPATH"
     ```
-    Add this to your `~/.zshrc` before the loader line.
+    Add this to your shell config before the loader line.

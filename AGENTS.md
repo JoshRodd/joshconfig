@@ -63,7 +63,7 @@ When modifying Rust code:
 Key files to remember:
 - Main binary source: `src/main.rs`
 - Installation script: `scripts/install.sh`
-- Loader script: `scripts/load-paths.zsh`
+- Loader scripts: `scripts/load-paths.zsh`, `scripts/load-paths.bash`
 - Manpage: `man/joshconfig.1`
 - Tests: `tests/` directory
 - Documentation: `README.md`, `INSTALL.md`, `TODO.md`
