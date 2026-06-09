@@ -10,6 +10,41 @@ MANPATHS_DIR="$HOME/.manpaths.d"
 LOADER_SCRIPT="$INSTALL_DIR/load-paths.zsh"
 LOADER_LINE='. "$HOME/.local/bin/load-paths.zsh"'
 
+# Version
+VERSION="0.1.0"
+
+# Argument parsing
+case "$1" in
+    --version|-v)
+        echo "joshconfig install.sh version $VERSION"
+        exit 0
+        ;;
+    --help|-h)
+        cat <<EOF
+joshconfig install.sh - Install joshconfig PATH/MANPATH manager
+
+USAGE:
+    install.sh [OPTIONS]
+
+OPTIONS:
+    -h, --help       Print help information
+    -v, --version    Print version information
+
+This script will:
+    - Build the joshconfig binary from source
+    - Install joshconfig to ~/.local/bin/
+    - Install load-paths.zsh to ~/.local/bin/
+    - Create ~/.paths.d/ and ~/.manpaths.d/ directories
+    - Install the manpage to ~/.local/share/man/man1/
+    - Add loader line to shell config files (if not present)
+
+For more information, see INSTALL.md
+EOF
+        exit 0
+        ;;
+esac
+
+
 echo "Installing joshconfig PATH/MANPATH manager..."
 echo
 

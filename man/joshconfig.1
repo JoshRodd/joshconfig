@@ -5,6 +5,14 @@ joshconfig \- manage PATH and MANPATH environment variables
 .B joshconfig
 .I command
 [\fIoptions\fR]
+.PP
+.B joshconfig
+.BR \-\-version
+.RB | \-V
+.PP
+.B joshconfig
+.BR \-\-help
+.RB | \-h
 .SH DESCRIPTION
 .B joshconfig
 extracts PATH and MANPATH modifications from shell configuration files and
@@ -55,6 +63,30 @@ Show help information.
 .PP
 .B joshconfig help
 .RI [ command ]
+.SS GLOBAL OPTIONS
+These options are available for all commands:
+.TP
+.BR \-\-version ", " \-V
+Print version information and exit
+.TP
+.BR \-\-help ", " \-h
+Print help information and exit
+.SS INSTALL SCRIPT
+The installation script (scripts/install.sh) supports the following options:
+.PP
+.B scripts/install.sh
+.RB [ \-\-version | \-v ]
+.RB [ \-\-help | \-h ]
+.PP
+Options:
+.TP
+.BR \-\-version ", " \-v
+Print the installation script version and exit
+.TP
+.BR \-\-help ", " \-h
+Print help information and exit
+.PP
+The install script is compatible with GNU bash version 3.2.57 and later.
 .SH ENTRY FILE FORMAT
 Each file in ~/.paths.d/ or ~/.manpaths.d/ contains one path entry:
 .PP
