@@ -1,11 +1,11 @@
-#!/bin/sh
-# test-loader.sh - Test the load-paths.sh script
-# This script tests the loader in both bash and zsh
+#!/usr/bin/env zsh
+# test-loader.sh - Test the load-paths.zsh script
+# This script tests the loader in zsh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LOADER_SCRIPT="$SCRIPT_DIR/../scripts/load-paths.sh"
+LOADER_SCRIPT="$SCRIPT_DIR/../scripts/load-paths.zsh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,7 +46,7 @@ cat > "$TEMP_HOME/.paths.d/20-opt-bin" << 'EOF'
 /opt/bin # Optional packages
 EOF
 
-HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH" | grep -q "^/opt/bin:/usr/local/bin:/usr/bin:/bin$"
+HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH" | grep -q "^/opt/bin:/usr/local/bin:/usr/bin:/bin$"
 if [ $? -eq 0 ]; then
     pass "Paths loaded in correct order"
 else
@@ -55,7 +55,7 @@ fi
 
 # Test 2: Deduplication
 echo "Test 2: Deduplication"
-rm -rf "$TEMP_HOME/.paths.d"/*
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.paths.d/10-first" << 'EOF'
 /usr/local/bin # First
 EOF
@@ -64,7 +64,7 @@ cat > "$TEMP_HOME/.paths.d/20-second" << 'EOF'
 /usr/local/bin # Second (duplicate)
 EOF
 
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if echo "$result" | grep -q "^/usr/local/bin:/usr/bin:/bin$"; then
     pass "Duplicates removed, first occurrence kept"
 else
@@ -73,12 +73,12 @@ fi
 
 # Test 3: $HOME expansion
 echo "Test 3: \$HOME expansion"
-rm -rf "$TEMP_HOME/.paths.d"/*
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.paths.d/10-home-bin" << 'EOF'
 $HOME/.local/bin # User local
 EOF
 
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if echo "$result" | grep -q "$TEMP_HOME/.local/bin"; then
     pass "\$HOME expanded correctly"
 else
@@ -87,12 +87,12 @@ fi
 
 # Test 4: Tilde expansion
 echo "Test 4: Tilde expansion"
-rm -rf "$TEMP_HOME/.paths.d"/*
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.paths.d/10-home-bin" << 'EOF'
 ~/bin # User bin
 EOF
 
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if echo "$result" | grep -q "$TEMP_HOME/bin"; then
     pass "Tilde expanded correctly"
 else
@@ -101,12 +101,12 @@ fi
 
 # Test 5: MANPATH loading
 echo "Test 5: MANPATH loading"
-rm -rf "$TEMP_HOME/.manpaths.d"/*
+find "$TEMP_HOME/.manpaths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.manpaths.d/10-local-man" << 'EOF'
 /usr/local/share/man # Local man pages
 EOF
 
-result=$(HOME="$TEMP_HOME" MANPATH="/usr/share/man" sh -c ". $LOADER_SCRIPT && echo \$MANPATH")
+result=$(HOME="$TEMP_HOME" MANPATH="/usr/share/man" zsh -c ". $LOADER_SCRIPT && echo \$MANPATH")
 if echo "$result" | grep -q "^/usr/local/share/man:/usr/share/man$"; then
     pass "MANPATH loaded correctly"
 else
@@ -115,12 +115,12 @@ fi
 
 # Test 6: Comments are stripped
 echo "Test 6: Comments are stripped"
-rm -rf "$TEMP_HOME/.paths.d"/*
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.paths.d/10-test" << 'EOF'
 /usr/local/bin # This is a comment
 EOF
 
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if ! echo "$result" | grep -q "comment"; then
     pass "Comments stripped correctly"
 else
@@ -129,12 +129,12 @@ fi
 
 # Test 7: Quoted paths
 echo "Test 7: Quoted paths"
-rm -rf "$TEMP_HOME/.paths.d"/*
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.paths.d/10-quoted" << 'EOF'
 "/usr/local/bin" # Quoted path
 EOF
 
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if echo "$result" | grep -q "^/usr/local/bin:/usr/bin:/bin$"; then
     pass "Quoted paths handled correctly"
 else
@@ -143,8 +143,8 @@ fi
 
 # Test 8: Empty directory
 echo "Test 8: Empty directory"
-rm -rf "$TEMP_HOME/.paths.d"/*
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if [ "$result" = "/usr/bin:/bin" ]; then
     pass "Empty directory handled correctly"
 else
@@ -154,7 +154,7 @@ fi
 # Test 9: Missing directory
 echo "Test 9: Missing directory"
 rm -rf "$TEMP_HOME/.paths.d"
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if [ "$result" = "/usr/bin:/bin" ]; then
     pass "Missing directory handled correctly"
 else
@@ -166,12 +166,12 @@ mkdir -p "$TEMP_HOME/.paths.d"
 
 # Test 10: Multiple paths in existing PATH
 echo "Test 10: Preserve existing PATH order"
-rm -rf "$TEMP_HOME/.paths.d"/*
+find "$TEMP_HOME/.paths.d" -mindepth 1 -delete 2>/dev/null || true
 cat > "$TEMP_HOME/.paths.d/10-new" << 'EOF'
 /new/path # New path
 EOF
 
-result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin:/sbin" sh -c ". $LOADER_SCRIPT && echo \$PATH")
+result=$(HOME="$TEMP_HOME" PATH="/usr/bin:/bin:/sbin" zsh -c ". $LOADER_SCRIPT && echo \$PATH")
 if echo "$result" | grep -q "^/new/path:/usr/bin:/bin:/sbin$"; then
     pass "Existing PATH preserved"
 else

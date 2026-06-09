@@ -1,9 +1,9 @@
-#!/bin/sh
-# load-paths.sh - Load PATH and MANPATH from ~/.paths.d and ~/.manpaths.d
-# Compatible with bash 3.2.57+ and zsh
+#!/usr/bin/env zsh
+# load-paths.zsh - Load PATH and MANPATH from ~/.paths.d and ~/.manpaths.d
+# Zsh-specific loader script
 #
-# Usage: Source this file in your .bashrc or .zshrc
-#   . "$HOME/.local/bin/load-paths.sh"
+# Usage: Source this file in your .zshrc
+#   . "$HOME/.local/bin/load-paths.zsh"
 
 # Function to add a path to a variable if not already present
 # Uses case statement for POSIX compatibility (no associative arrays)
@@ -126,14 +126,14 @@ _load_paths_from_dir() {
         fi
 
         # Deduplicate, keeping first occurrence (append to maintain order)
+        # Use zsh array splitting with = flag
+        typeset -a _path_array
+        _path_array=("${(@s.:.)_combined}")
         _deduped=""
-        _IFS="$IFS"
-        IFS=':'
-        for _path in $_combined; do
-            [ -z "$_path" ] && continue
+        for _path in "${_path_array[@]}"; do
+            [[ -z "$_path" ]] && continue
             _deduped=$(_append_path_if_new "$_var_name" "$_path" "$_deduped")
         done
-        IFS="$_IFS"
 
         # Set the variable
         eval "$_var_name=\"\$_deduped\""

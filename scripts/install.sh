@@ -7,8 +7,8 @@ set -e
 INSTALL_DIR="$HOME/.local/bin"
 PATHS_DIR="$HOME/.paths.d"
 MANPATHS_DIR="$HOME/.manpaths.d"
-LOADER_SCRIPT="$INSTALL_DIR/load-paths.sh"
-LOADER_LINE='. "$HOME/.local/bin/load-paths.sh"'
+LOADER_SCRIPT="$INSTALL_DIR/load-paths.zsh"
+LOADER_LINE='. "$HOME/.local/bin/load-paths.zsh"'
 
 echo "Installing joshconfig PATH/MANPATH manager..."
 echo
@@ -35,8 +35,8 @@ else
 fi
 
 # Copy the loader script
-echo "Installing load-paths.sh..."
-cp scripts/load-paths.sh "$LOADER_SCRIPT"
+echo "Installing load-paths.zsh..."
+cp scripts/load-paths.zsh "$LOADER_SCRIPT"
 chmod +x "$LOADER_SCRIPT"
 
 echo
@@ -45,11 +45,10 @@ echo
 echo "Next steps:"
 echo "1. Run 'joshconfig analyze' to analyze your shell configs and generate path files"
 echo
-echo "2. Add the following line to the END of your ~/.bashrc:"
+echo "2. Add the following line to the END of your ~/.zshrc:"
 echo "   $LOADER_LINE"
 echo
-echo "3. Add the following line to the END of your ~/.zshrc:"
-echo "   $LOADER_LINE"
+echo "   Note: Bash support is not yet implemented. See TODO.md for details."
 echo
 echo "The loader must be at the END of your config files to ensure"
 echo "it processes paths after all other modifications."
@@ -98,7 +97,7 @@ check_config_file() {
 
 # Check existing config files
 echo "Checking existing shell config files..."
-check_config_file "$HOME/.bashrc"
+# check_config_file "$HOME/.bashrc"  # TODO: Enable when bash loader is implemented
 check_config_file "$HOME/.zshrc"
 
 echo
