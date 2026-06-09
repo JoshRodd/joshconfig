@@ -79,6 +79,11 @@ _load_paths_from_dir() {
         return
     fi
 
+    # Check if directory has any files (avoid zsh glob error)
+    if [ -z "$(ls -A "$_dir" 2>/dev/null)" ]; then
+        return
+    fi
+
     # Build new path by reading files in sorted order
     _new_paths=""
     for _file in "$_dir"/*; do
