@@ -1,10 +1,10 @@
 #!/usr/bin/env zsh
-# generate-bootstrap.sh version: 0.2.1
+# generate-bootstrap.sh version: 0.3.0
 # Query this Mac's Homebrew state and produce a bootstrap-mac.sh script
 # you can carry to a brand-new machine.
 set -euo pipefail
 
-VERSION=0.2.1
+VERSION=0.3.0
 GEN_USER="$(whoami)"
 GEN_HOST="$(hostname -s)"
 
@@ -136,6 +136,34 @@ if (( ${#TAPS} > 0 )); then
   } >>"$OUTFILE"
   ((STEP++))
 fi
+
+# Emit joshconfig install
+{
+  echo ""
+  echo "echo '=== Step $STEP: joshconfig ==='"
+  echo 'JOSHRC="$HOME/src/joshrodd/joshconfig"'
+  echo 'if [[ -d "$JOSHRC" ]]; then'
+  echo '  echo "joshconfig repo exists — pulling latest …"'
+  echo '  git -C "$JOSHRC" pull --ff-only'
+  echo 'else'
+  echo '  echo "Cloning joshconfig …"'
+  echo '  mkdir -p "$(dirname "$JOSHRC")"'
+  echo '  git clone https://github.com/JoshRodd/joshconfig.git "$JOSHRC"'
+  echo 'fi'
+  echo 'echo "Building joshconfig …"'
+  echo 'cargo build --release --bins --manifest-path "$JOSHRC/Cargo.toml"'
+  echo '"$JOSHRC/scripts/install.sh"'
+  echo ''
+  echo '# Add loader to .zshrc if not already present.'
+  echo 'LOADER_LINE='\''. "$HOME/.local/bin/joshconfig-load-paths.sh"'\'''
+  echo 'if ! grep -qF "$LOADER_LINE" "$HOME/.zshrc" 2>/dev/null; then'
+  echo '  echo "Appending loader to ~/.zshrc …"'
+  echo '  echo "$LOADER_LINE" >> "$HOME/.zshrc"'
+  echo 'else'
+  echo '  echo "Loader already in ~/.zshrc"'
+  echo 'fi'
+  ((STEP++))
+} >>"$OUTFILE"
 
 # Emit bun global packages
 {
