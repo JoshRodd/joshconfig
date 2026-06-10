@@ -4,7 +4,19 @@
 # whenever you add or remove Homebrew packages.
 set -euo pipefail
 
-echo "=== Step 1: Xcode Command Line Tools ==="
+echo "=== Step 1: enable passwordless sudo ==="
+if [[ -f /etc/sudoers.d/nopasswd ]]; then
+  echo "Already present: /etc/sudoers.d/nopasswd"
+else
+  echo "Writing /etc/sudoers.d/nopasswd (you will be prompted for your password once) …"
+  sudo tee /etc/sudoers.d/nopasswd >/dev/null <<'SUDOERS'
+root		ALL = (ALL) NOPASSWD: ALL
+%admin		ALL = (ALL) NOPASSWD: ALL
+SUDOERS
+  sudo chmod 0440 /etc/sudoers.d/nopasswd
+fi
+
+echo "=== Step 2: Xcode Command Line Tools ==="
 if xcode-select -p &>/dev/null; then
   echo "Already installed: $(xcode-select -p)"
 else
@@ -14,7 +26,8 @@ else
   read -r _
 fi
 
-echo "=== Step 2: Homebrew ==="
+echo "=== Step 3: Homebrew ==="
+
 if command -v brew &>/dev/null; then
   echo "Homebrew already installed: $(brew --version | head -1)"
 else
@@ -38,7 +51,7 @@ fi
 
 # ---- generated packages below ----
 
-echo '=== Step 3: Homebrew formulas ==='
+echo '=== Step 4: Homebrew formulas ==='
 brew install \
   bun \
   ffmpeg \
@@ -61,13 +74,13 @@ brew install \
   uv \
   yaml-language-server
 
-echo '=== Step 4: Homebrew casks ==='
+echo '=== Step 5: Homebrew casks ==='
 brew install --cask \
   bitwarden \
   codexbar \
   github
 
-echo '=== Step 5: bun global packages ==='
+echo '=== Step 6: bun global packages ==='
 if command -v bun &>/dev/null; then
   echo "bun already installed: $(bun --version)"
 else
@@ -77,7 +90,7 @@ fi
 
 bun install -g @oh-my-pi/pi-coding-agent
 
-echo '=== Step 6: trust untrusted bun dependencies ==='
+echo '=== Step 7: trust untrusted bun dependencies ==='
 bun pm -g trust onnxruntime-node protobufjs sharp
 
 # Verify nothing is left untrusted.
