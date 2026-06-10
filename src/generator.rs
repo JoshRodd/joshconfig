@@ -3,16 +3,19 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 
-/// Generate .paths.d and .manpaths.d directories with numbered files
+/// Generate .paths.d, .manpaths.d, and .infopaths.d directories with numbered files
 pub fn generate_path_files(entries: &[PathEntry], home: &Path) -> Result<()> {
     let paths_dir = home.join(".paths.d");
     let manpaths_dir = home.join(".manpaths.d");
+    let infopaths_dir = home.join(".infopaths.d");
 
     // Create directories if they don't exist
     fs::create_dir_all(&paths_dir)
         .with_context(|| format!("Failed to create {}", paths_dir.display()))?;
     fs::create_dir_all(&manpaths_dir)
         .with_context(|| format!("Failed to create {}", manpaths_dir.display()))?;
+    fs::create_dir_all(&infopaths_dir)
+        .with_context(|| format!("Failed to create {}", infopaths_dir.display()))?;
 
     // Filter out entries from /etc/paths.d and /etc/manpaths.d
     let filtered_entries: Vec<&PathEntry> = entries
@@ -20,7 +23,7 @@ pub fn generate_path_files(entries: &[PathEntry], home: &Path) -> Result<()> {
         .filter(|e| !is_path_helper_entry(e))
         .collect();
 
-    // Separate PATH and MANPATH entries
+    // Separate PATH, MANPATH, and INFOPATH entries
     let path_entries: Vec<&PathEntry> = filtered_entries
         .iter()
         .filter(|e| e.variable == PathVar::Path)
@@ -30,6 +33,12 @@ pub fn generate_path_files(entries: &[PathEntry], home: &Path) -> Result<()> {
     let manpath_entries: Vec<&PathEntry> = filtered_entries
         .iter()
         .filter(|e| e.variable == PathVar::Manpath)
+        .copied()
+        .collect();
+
+    let infopath_entries: Vec<&PathEntry> = filtered_entries
+        .iter()
+        .filter(|e| e.variable == PathVar::Infopath)
         .copied()
         .collect();
 
@@ -43,7 +52,6 @@ pub fn generate_path_files(entries: &[PathEntry], home: &Path) -> Result<()> {
             .with_context(|| format!("Failed to write {}", file_path.display()))?;
     }
 
-    // Generate MANPATH files
     for entry in manpath_entries {
         let filename = entry.filename();
         let file_path = manpaths_dir.join(&filename);
@@ -53,23 +61,37 @@ pub fn generate_path_files(entries: &[PathEntry], home: &Path) -> Result<()> {
             .with_context(|| format!("Failed to write {}", file_path.display()))?;
     }
 
+    // Generate INFOPATH files
+    for entry in infopath_entries {
+        let filename = entry.filename();
+        let file_path = infopaths_dir.join(&filename);
+        let content = entry.file_content();
+
+        fs::write(&file_path, content)
+            .with_context(|| format!("Failed to write {}", file_path.display()))?;
+    }
+
     Ok(())
 }
 
-/// Check if an entry comes from /etc/paths.d or /etc/manpaths.d
-/// These are handled by path_helper and should not be duplicated
+/// Check if an entry comes from /etc/paths.d, /etc/manpaths.d, or /etc/infopaths.d.
+/// These are handled by the system path reader and should not be duplicated.
 fn is_path_helper_entry(entry: &PathEntry) -> bool {
     let source_str = entry.source_file.to_string_lossy();
-    source_str.contains("/etc/paths.d") || source_str.contains("/etc/manpaths.d")
+    source_str.contains("/etc/paths.d")
+        || source_str.contains("/etc/manpaths.d")
+        || source_str.contains("/etc/infopaths.d")
 }
 
-/// Clean up old files in .paths.d/.manpaths.d that are no longer needed
+/// Clean up old files in .paths.d/.manpaths.d/.infopaths.d that are no longer needed
 pub fn cleanup_old_entries(home: &Path, current_entries: &[PathEntry]) -> Result<()> {
     let paths_dir = home.join(".paths.d");
     let manpaths_dir = home.join(".manpaths.d");
+    let infopaths_dir = home.join(".infopaths.d");
 
     cleanup_dir(&paths_dir, current_entries, PathVar::Path)?;
     cleanup_dir(&manpaths_dir, current_entries, PathVar::Manpath)?;
+    cleanup_dir(&infopaths_dir, current_entries, PathVar::Infopath)?;
 
     Ok(())
 }

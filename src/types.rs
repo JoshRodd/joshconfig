@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub enum PathVar {
     Path,
     Manpath,
+    Infopath,
 }
 
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# joshconfig-load-paths.sh v0.1.0 — joshconfig PATH/MANPATH loader shim
+# joshconfig-load-paths.sh v0.1.0 — joshconfig PATH/MANPATH/INFOPATH loader shim
 # Source this at the END of your .zshrc / .bashrc / .profile
 #
 # Usage: . "$HOME/.local/bin/joshconfig-load-paths.sh"

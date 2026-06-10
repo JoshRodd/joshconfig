@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Command;
 
-/// Instrument a shell to capture PATH/MANPATH changes from config files
+/// Instrument a shell to capture PATH/MANPATH/INFOPATH changes from config files
 pub fn analyze_shell(shell: ShellType) -> Result<Vec<PathEntry>> {
     let config_files = shell.config_files();
     let mut all_entries = Vec::new();
@@ -37,6 +37,8 @@ echo "===PATH_BEFORE==="
 echo "$PATH"
 echo "===MANPATH_BEFORE==="
 echo "$MANPATH"
+echo "===INFOPATH_BEFORE==="
+echo "$INFOPATH"
 echo "===SOURCE_START==="
 . "{}" 2>/dev/null || true
 echo "===SOURCE_END==="
@@ -44,6 +46,8 @@ echo "===PATH_AFTER==="
 echo "$PATH"
 echo "===MANPATH_AFTER==="
 echo "$MANPATH"
+echo "===INFOPATH_AFTER==="
+echo "$INFOPATH"
 "#,
         config_file.display()
     );
@@ -71,9 +75,11 @@ fn parse_instrumentation_output(
     let mut entries = Vec::new();
 
     let path_before = extract_section(output, "===PATH_BEFORE===", "===MANPATH_BEFORE===");
-    let manpath_before = extract_section(output, "===MANPATH_BEFORE===", "===SOURCE_START===");
+    let manpath_before = extract_section(output, "===MANPATH_BEFORE===", "===INFOPATH_BEFORE===");
+    let infopath_before = extract_section(output, "===INFOPATH_BEFORE===", "===SOURCE_START===");
     let path_after = extract_section(output, "===PATH_AFTER===", "===MANPATH_AFTER===");
-    let manpath_after = extract_section(output, "===MANPATH_AFTER===", "");
+    let manpath_after = extract_section(output, "===MANPATH_AFTER===", "===INFOPATH_AFTER===");
+    let infopath_after = extract_section(output, "===INFOPATH_AFTER===", "");
 
     // Find new PATH entries
     if let (Some(before), Some(after)) = (path_before, path_after) {
@@ -102,6 +108,25 @@ fn parse_instrumentation_output(
             entries.push(PathEntry {
                 path,
                 variable: PathVar::Manpath,
+                source_file: source_file.to_path_buf(),
+                line_number: None,
+                order: *global_order,
+                comment: format!(
+                    "Added by {}",
+                    source_file.file_name().and_then(|n| n.to_str()).unwrap_or("config")
+                ),
+            });
+        }
+    }
+
+    // Find new INFOPATH entries
+    if let (Some(before), Some(after)) = (infopath_before, infopath_after) {
+        let new_paths = diff_paths(&before, &after);
+        for path in new_paths {
+            *global_order += 1;
+            entries.push(PathEntry {
+                path,
+                variable: PathVar::Infopath,
                 source_file: source_file.to_path_buf(),
                 line_number: None,
                 order: *global_order,
@@ -172,12 +197,16 @@ mod tests {
 /usr/bin:/bin
 ===MANPATH_BEFORE===
 /usr/share/man
+===INFOPATH_BEFORE===
+/usr/share/info
 ===SOURCE_START===
 ===SOURCE_END===
 ===PATH_AFTER===
 /usr/local/bin:/usr/bin:/bin
 ===MANPATH_AFTER===
 /usr/share/man
+===INFOPATH_AFTER===
+/usr/share/info
 "#;
 
         let path_before = extract_section(output, "===PATH_BEFORE===", "===MANPATH_BEFORE===");
@@ -185,5 +214,8 @@ mod tests {
 
         let path_after = extract_section(output, "===PATH_AFTER===", "===MANPATH_AFTER===");
         assert_eq!(path_after, Some("/usr/local/bin:/usr/bin:/bin".to_string()));
+
+        let infopath_before = extract_section(output, "===INFOPATH_BEFORE===", "===SOURCE_START===");
+        assert_eq!(infopath_before, Some("/usr/share/info".to_string()));
     }
 }

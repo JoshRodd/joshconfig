@@ -11,7 +11,7 @@ use types::ShellType;
 
 #[derive(Parser)]
 #[command(name = "joshconfig")]
-#[command(about = "Analyze shell config files and manage PATH/MANPATH")]
+#[command(about = "Analyze shell config files and manage PATH/MANPATH/INFOPATH")]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]
@@ -20,7 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Analyze shell config files and generate .paths.d/.manpaths.d
+    /// Analyze shell config files and generate .paths.d/.manpaths.d/.infopaths.d
     Analyze {
         /// Shell to analyze (bash, zsh, or both)
         #[arg(value_enum, default_value = "both")]
@@ -31,13 +31,13 @@ enum Commands {
         dry_run: bool,
     },
 
-    /// List current entries in .paths.d and .manpaths.d
+    /// List current entries in .paths.d, .manpaths.d, and .infopaths.d
     List,
 
     /// Clean up old entries that are no longer in config files
     Clean,
 
-    /// Emit shell commands to set PATH and MANPATH from .paths.d/.manpaths.d
+    /// Emit shell commands to set PATH, MANPATH, and INFOPATH from .d directories
     Shellenv,
 
     /// Check and fix loader line position in shell config files
@@ -50,7 +50,6 @@ enum Commands {
         #[arg(long)]
         shell: Option<ShellArg>,
     },
-
 }
 #[derive(clap::ValueEnum, Clone)]
 enum ShellArg {
@@ -167,11 +166,11 @@ fn cmd_analyze(shell: ShellArg, dry_run: bool) -> Result<()> {
         println!("\nGenerated files in:");
         println!("  {}", home.join(".paths.d").display());
         println!("  {}", home.join(".manpaths.d").display());
+        println!("  {}", home.join(".infopaths.d").display());
     }
 
     Ok(())
 }
-
 fn cmd_list() -> Result<()> {
     let home = dirs::home_dir().context("Could not determine home directory")?;
 
@@ -180,6 +179,9 @@ fn cmd_list() -> Result<()> {
 
     println!("\nMANPATH entries ({}):", home.join(".manpaths.d").display());
     list_dir(&home.join(".manpaths.d"))?;
+
+    println!("\nINFOPATH entries ({}):", home.join(".infopaths.d").display());
+    list_dir(&home.join(".infopaths.d"))?;
 
     Ok(())
 }

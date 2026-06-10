@@ -4,7 +4,7 @@ use regex::Regex;
 use std::fs;
 use std::path::Path;
 
-/// Parse a shell config file and extract PATH/MANPATH modifications
+/// Parse a shell config file and extract PATH/MANPATH/INFOPATH modifications
 pub fn parse_shell_file(path: &Path) -> Result<Vec<PathEntry>> {
     let content = fs::read_to_string(path)?;
     let mut entries = Vec::new();
@@ -13,7 +13,7 @@ pub fn parse_shell_file(path: &Path) -> Result<Vec<PathEntry>> {
     // Matches: PATH=..., export PATH=..., PATH="...", etc.
     // We'll match the assignment and handle quotes in post-processing
     let path_assign = Regex::new(
-        r"(?m)^(?:export\s+)?(PATH|MANPATH)=(.+)$"
+        r"(?m)^(?:export\s+)?(PATH|MANPATH|INFOPATH)=(.+)$"
     )?;
 
     // Matches zsh array syntax: path+=(...) or path=(...)
@@ -44,10 +44,10 @@ pub fn parse_shell_file(path: &Path) -> Result<Vec<PathEntry>> {
                 value = &value[1..value.len()-1];
             }
 
-            let variable = if var_name == "PATH" {
-                PathVar::Path
-            } else {
-                PathVar::Manpath
+            let variable = match var_name {
+                "PATH" => PathVar::Path,
+                "INFOPATH" => PathVar::Infopath,
+                _ => PathVar::Manpath,
             };
 
             // Extract new path components (those not in $PATH/$MANPATH)
