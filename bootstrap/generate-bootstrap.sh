@@ -1,10 +1,10 @@
 #!/usr/bin/env zsh
-# generate-bootstrap.sh version: 0.2.0
+# generate-bootstrap.sh version: 0.2.1
 # Query this Mac's Homebrew state and produce a bootstrap-mac.sh script
 # you can carry to a brand-new machine.
 set -euo pipefail
 
-VERSION=0.2.0
+VERSION=0.2.1
 GEN_USER="$(whoami)"
 GEN_HOST="$(hostname -s)"
 
@@ -63,16 +63,12 @@ fi
 
 echo "=== Step 3: Homebrew ==="
 
-# Enable dev mode so Homebrew works on macOS beta / unsupported versions.
-export HOMEBREW_DEVELOPER=1
-
 if command -v brew &>/dev/null; then
   echo "Homebrew already installed: $(brew --version | head -1)"
 else
-  echo "Downloading & installing Homebrew (with developer mode for beta macOS support) …"
+  echo "Downloading & installing Homebrew …"
   # The shell-script installer is the canonical, version-agnostic method.
-  # HOMEBREW_DEVELOPER=1 tells the installer to accept prerelease macOS.
-  HOMEBREW_DEVELOPER=1 /bin/bash -c \
+  /bin/bash -c \
     "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
   # If you prefer an Apple-signed .pkg for MDM / air-gapped deployments,
@@ -86,6 +82,13 @@ else
   elif [[ -x /usr/local/bin/brew ]]; then
     eval "$(/usr/local/bin/brew shellenv)"
   fi
+fi
+
+# Detect macOS beta: build versions ending in a letter (e.g. 24A526j).
+BUILD="$(sw_vers -buildVersion 2>/dev/null || true)"
+if [[ -n "$BUILD" && "$BUILD" =~ [a-zA-Z]$ ]]; then
+  echo "macOS beta detected (build $BUILD) — enabling Homebrew developer mode"
+  brew developer on
 fi
 
 # ---- generated packages below ----
